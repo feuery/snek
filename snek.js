@@ -20,6 +20,7 @@ let oldkey = null;
 const grid_w = 50, grid_h = 50;
 let current_goal_position = null;
 let score = 0;
+let lost = false;
 
 function vec_plus (vec1, vec2) {
     let [x1, y1] = vec1,
@@ -86,7 +87,35 @@ function snek_step(node, previous_old_position = null) {
     if(node.tail_node) snek_step(node.tail_node, old_position);
 }
 
+function max_dimensions(canvas) {
+    return [canvas.width / grid_w,  
+	    canvas.height / grid_h].map(Math.floor);
+}
+
+function snek_collides(head_node) {
+    let snek_array = []
+    for(let node = head_node; node; node = node.tail_node) {
+	snek_array.push(node);
+    }
+    
+
+    let position_array = snek_array.map(n => n.position);
+
+    for(let [x, y] of position_array) {
+	let count = 0;
+	for (let [x2, y2] of position_array) {
+	    if (x == x2 && y == y2) count++;
+	}
+
+	if (count > 1) return true;
+    }
+
+    return false;
+}
+    
+
 function update() {
+    if(lost) return;
     
     let [ctx, canvas] = getCtx();
 
@@ -99,6 +128,13 @@ function update() {
 	score++;
 	let final_node_el = final_node(head_node);
 	final_node_el.tail_node = make_snek_node(vec_plus(final_node_el.position, [-1, -1]));
+    }
+
+    let [x, y] = head_node.position;
+    let [max_x, max_y] = max_dimensions(canvas);
+    if ( x >= max_x || y >= max_y || x < 0 || y < 0 || snek_collides(head_node)) {	
+	alert('You lost!');
+	lost = true;
     }
     
     draw(canvas, ctx);
