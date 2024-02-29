@@ -7,11 +7,19 @@ function make_snek_node(position) {
 	    tail_node: null};
 }
 
+function snek_len(node, acc = 1) {
+    if (node.tail_node) {
+	return snek_len(node.tail_node, acc + 1);
+    }
+    return acc;
+}
+
 let head_node = make_snek_node([0,0]);
 let direction = [0, 0]
 let oldkey = null;
 const grid_w = 50, grid_h = 50;
 let current_goal_position = null;
+let score = 0;
 
 function vec_plus (vec1, vec2) {
     let [x1, y1] = vec1,
@@ -35,6 +43,13 @@ function getCtx() {
     return [canvas.getContext("2d"), canvas];
 }
 
+function draw_step(node, ctx) {
+    let [x,y] = node.position;
+    ctx.fillRect(x * grid_w, y * grid_w, grid_w, grid_h);
+
+    if(node.tail_node) draw_step (node.tail_node, ctx);
+}    
+
 function draw(canvas, ctx) {
     console.assert(ctx);
 
@@ -44,7 +59,7 @@ function draw(canvas, ctx) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(x * grid_w, y * grid_w, grid_w, grid_h);
+    draw_step(head_node, ctx);
 
     let [goal_x, goal_y] = current_goal_position;
     ctx.fillStyle = '#FF0000';
@@ -56,19 +71,40 @@ function new_goal(canvas) {
 	    rand(canvas.height) / grid_h].map(Math.floor);
 }
 
+function final_node(node) {
+    if (!node.tail_node) return node;
+    else return (final_node(node.tail_node));
+}
+
+function snek_step(node, previous_old_position = null) {
+    let old_position = node.position;
+    if(!previous_old_position) {
+	node.position = vec_plus(node.position, direction);
+    }
+    else node.position = previous_old_position;
+
+    if(node.tail_node) snek_step(node.tail_node, old_position);
+}
+
 function update() {
     
     let [ctx, canvas] = getCtx();
 
-    head_node.position = vec_plus(head_node.position, direction);
+    let [d_x, d_y] = direction
+    if (d_x != 0 || d_y != 0)
+	snek_step(head_node);
 
     if (vec_eq(head_node.position, current_goal_position)) {
 	current_goal_position = new_goal(canvas);
+	score++;
+	let final_node_el = final_node(head_node);
+	final_node_el.tail_node = make_snek_node(vec_plus(final_node_el.position, [-1, -1]));
     }
     
     draw(canvas, ctx);
 
-    document.querySelector('#report').innerText = `snek at ${head_node.position}, goal at ${current_goal_position}`;
+    let len = snek_len(head_node);
+    document.querySelector('#report').innerText = `score is ${score}, snek_len is ${len}, snek at ${head_node.position}, goal at ${current_goal_position}`;
     
 }
 
